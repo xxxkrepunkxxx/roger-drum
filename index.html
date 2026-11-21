@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ROGER DRUM PLUS - Controle BLE</title>
+  <style>
+    :root { --bg: #0b0f17; --card: #151c28; --accent: #ff8c00; --text: #f0f4f8; --muted: #8b9bb4; --green: #00c853; }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 16px; max-width: 500px; margin: auto; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 16px; }
+    h1 { font-size: 1.2rem; margin: 0; }
+    .badge { background: var(--accent); color: #000; font-weight: bold; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+    button { background: var(--card); color: var(--text); border: 1px solid #2d3748; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    button:active { transform: scale(0.97); }
+    #btnConnect { background: #0284c7; border-color: #38bdf8; width: 100%; font-size: 1rem; margin-bottom: 16px; }
+    #btnConnect.connected { background: #065f46; border-color: var(--green); }
+    .card { background: var(--card); border: 1px solid #2d3748; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+    .card h2 { font-size: 0.85rem; color: var(--muted); margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .row:last-child { margin-bottom: 0; }
+    label { font-size: 0.9rem; min-width: 85px; }
+    input[type=range] { flex: 1; accent-color: var(--accent); height: 6px; }
+    .val { font-weight: bold; min-width: 48px; text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
+    select { flex: 1; background: #0b0f17; color: var(--text); border: 1px solid #4a5568; padding: 8px; border-radius: 6px; font-size: 0.95rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-test { background: #065f46; border-color: var(--green); width: 100%; margin-top: 8px; }
+    .btn-save { background: var(--accent); color: #000; border: none; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div><h1>ROGER DRUM <span class="badge">PLUS BLE</span></h1></div>
+    <span id="statusText" style="font-size:0.8rem; color:var(--muted);">Desconectado</span>
+  </header>
+
+  <button id="btnConnect" onclick="conectarBLE()">🔵 CONECTAR AO MÓDULO</button>
+
+  <div class="card">
+    <h2>Kit & Geral</h2>
+    <div class="row">
+      <label>Kit Atual</label>
+      <select id="selKit" onchange="enviarCmd('KIT:' + this.value)">
+        <option value="0">01: ROCK STUDIO</option>
+        <option value="1">02: HEAVY METAL</option>
+        <option value="2">03: ELETRONICA 808</option>
+        <option value="3">04: JAZZ ACOUSTIC</option>
+        <option value="4">05: SAMBA / PERC</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Master Vol</label>
+      <input type="range" id="rngMaster" min="0" max="100" value="65" oninput="upd('valMaster', this.value+'%'); enviarCmd('VOL:' + this.value)">
+      <span class="val" id="valMaster">65%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Metrônomo</h2>
+    <div class="row">
+      <button id="btnMetro" style="flex:1" onclick="toggleMetro()">METRO: OFF</button>
+      <div style="flex:2; display:flex; align-items:center; gap:8px;">
+        <label style="min-width:auto">BPM</label>
+        <input type="range" id="rngBpm" min="60" max="200" value="120" oninput="upd('valBpm', this.value); enviarCmd('BPM:' + this.value)">
+        <span class="val" id="valBpm">120</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>Vol Click</label>
+      <input type="range" id="rngMetroVol" min="0" max="100" value="60" oninput="upd('valMetroVol', this.value+'%'); enviarCmd('MVOL:' + this.value)">
+      <span class="val" id="valMetroVol">60%</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ajuste por Peça (Pads)</h2>
+    <div class="row">
+      <label>Peça</label>
+      <select id="selPad" onchange="enviarCmd('PAD:' + this.value)">
+        <option value="0">01: KICK (Bumbo)</option>
+        <option value="1">02: SNARE (Caixa)</option>
+        <option value="2">03: HIHAT (Chimbal)</option>
+        <option value="3">04: TOM 1 (Agudo)</option>
+        <option value="4">05: TOM 2 (Médio)</option>
+        <option value="5">06: FLOOR (Surdo)</option>
+        <option value="6">07: CRASH (Ataque)</option>
+        <option value="7">08: RIDE (Condução)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Volume</label>
+      <input type="range" id="rngPadVol" min="0" max="100" value="95" oninput="upd('valPadVol', this.value+'%'); enviarCmd('PVOL:' + this.value)">
+      <span class="val" id="valPadVol">95%</span>
+    </div>
+    <div class="row">
+      <label>Pan (L/R)</label>
+      <input type="range" id="rngPadPan" min="-10" max="10" step="2" value="0" oninput="upd('valPadPan', this.value); enviarCmd('PPAN:' + this.value)">
+      <span class="val" id="valPadPan">0</span>
+    </div>
+    <div class="row">
+      <label>Afinação</label>
+      <input type="range" id="rngPadPitch" min="-6" max="6" value="0" oninput="upd('valPadPitch', (this.value>0?'+':'')+this.value+' st'); enviarCmd('PPIT:' + this.value)">
+      <span class="val" id="valPadPitch">0 st</span>
+    </div>
+    <button class="btn-test" onclick="enviarCmd('HIT:' + document.getElementById('selPad').value)">🔊 OUVIR SOM DA PEÇA</button>
+  </div>
+
+  <div class="card">
+    <h2>Trigger (Piezo)</h2>
+    <div class="row">
+      <label>Sensibilid.</label>
+      <input type="range" id="rngSens" min="1" max="16" value="13" oninput="upd('valSens', this.value+'/16'); enviarCmd('SENS:' + this.value)">
+      <span class="val" id="valSens">13/16</span>
+    </div>
+    <div class="row">
+      <label>Limiar</label>
+      <input type="range" id="rngThresh" min="1" max="60" value="25" oninput="upd('valThresh', this.value*25); enviarCmd('THRS:' + this.value)">
+      <span class="val" id="valThresh">625</span>
+    </div>
+    <div class="row">
+      <label>MaskTime</label>
+      <input type="range" id="rngMask" min="4" max="50" step="2" value="8" oninput="upd('valMask', this.value+'ms'); enviarCmd('MASK:' + this.value)">
+      <span class="val" id="valMask">8ms</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <button onclick="enviarCmd('SYNC')">🔄 SINCRONIZAR</button>
+    <button class="btn-save" onclick="enviarCmd('SAVE')">💾 SALVAR NO SD</button>
+  </div>
+
+<script>
+  const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+  const CHAR_UUID    = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+  let bleChar = null;
+  let metroState = false;
+
+  function upd(id, txt) { document.getElementById(id).innerText = txt; }
+
+  async function conectarBLE() {
+    try {
+      document.getElementById('statusText').innerText = "Buscando...";
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'ROGER-DRUM-PLUS' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      bleChar = await service.getCharacteristic(CHAR_UUID);
+
+      await bleChar.startNotifications();
+      bleChar.addEventListener('characteristicvaluechanged', aoReceberDados);
+
+      const btn = document.getElementById('btnConnect');
+      btn.innerText = "✅ CONECTADO (ROGER-DRUM-PLUS)";
+      btn.classList.add('connected');
+      document.getElementById('statusText').innerText = "Online";
+      enviarCmd('SYNC');
+    } catch (e) {
+      document.getElementById('statusText').innerText = "Erro / Cancelado";
+      console.error(e);
+    }
+  }
+
+  let cmdTimer = null;
+  function enviarCmd(cmd) {
+    if (!bleChar) return;
+    clearTimeout(cmdTimer);
+    cmdTimer = setTimeout(async () => {
+      try {
+        const enc = new TextEncoder();
+        await bleChar.writeValueWithoutResponse(enc.encode(cmd));
+      } catch (e) { console.error(e); }
+    }, 35);
+  }
+
+  function toggleMetro() {
+    metroState = !metroState;
+    document.getElementById('btnMetro').innerText = metroState ? "METRO: ON" : "METRO: OFF";
+    enviarCmd('MTR:' + (metroState ? '1' : '0'));
+  }
+
+  function aoReceberDados(event) {
+    const str = new TextDecoder().decode(event.target.value);
+    if (str.startsWith("STATE:")) {
+      const p = str.substring(6).split(',');
+      if (p.length >= 12) {
+        document.getElementById('selKit').value = p;
+        document.getElementById('rngMaster').value = p; upd('valMaster', p+'%');
+        document.getElementById('rngMetroVol').value = p; upd('valMetroVol', p+'%');
+        metroState = (p === '1');
+        document.getElementById('btnMetro').innerText = metroState ? "METRO: ON" : "METRO: OFF";
+        document.getElementById('rngBpm').value = p; upd('valBpm', p);
+        document.getElementById('selPad').value = p;
+        document.getElementById('rngPadVol').value = p; upd('valPadVol', p+'%');
+        document.getElementById('rngPadPan').value = p; upd('valPadPan', p);
+        document.getElementById('rngPadPitch').value = p; upd('valPadPitch', (p>0?'+':'')+p+' st');
+        document.getElementById('rngSens').value = p; upd('valSens', p+'/16');
+        document.getElementById('rngThresh').value = p; upd('valThresh', p*25);
+        document.getElementById('rngMask').value = p; upd('valMask', p+'ms');
+      }
+    }
+  }
+</script>
+</body>
+</html>
