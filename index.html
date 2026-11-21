@@ -140,11 +140,16 @@
 
   async function conectarBLE() {
     try {
+      if (!navigator.bluetooth) {
+        alert("Este navegador não suporta Web Bluetooth. Use Google Chrome ou Edge.");
+        return;
+      }
       document.getElementById('statusText').innerText = "Buscando...";
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: 'ROGER-DRUM-PLUS' }],
+        acceptAllDevices: true,
         optionalServices: [SERVICE_UUID]
       });
+      document.getElementById('statusText').innerText = "Pareando...";
       const server = await device.gatt.connect();
       const service = await server.getPrimaryService(SERVICE_UUID);
       bleChar = await service.getCharacteristic(CHAR_UUID);
@@ -153,12 +158,12 @@
       bleChar.addEventListener('characteristicvaluechanged', aoReceberDados);
 
       const btn = document.getElementById('btnConnect');
-      btn.innerText = "✅ CONECTADO (ROGER-DRUM-PLUS)";
+      btn.innerText = "✅ CONECTADO (" + (device.name || "ROGER-DRUM") + ")";
       btn.classList.add('connected');
       document.getElementById('statusText').innerText = "Online";
       enviarCmd('SYNC');
     } catch (e) {
-      document.getElementById('statusText').innerText = "Erro / Cancelado";
+      document.getElementById('statusText').innerText = "Erro: " + e.message;
       console.error(e);
     }
   }
@@ -186,22 +191,20 @@
     if (str.startsWith("STATE:")) {
       const p = str.substring(6).split(',');
       if (p.length >= 12) {
-        document.getElementById('selKit').value = p;
-        document.getElementById('rngMaster').value = p; upd('valMaster', p+'%');
-        document.getElementById('rngMetroVol').value = p; upd('valMetroVol', p+'%');
-        metroState = (p === '1');
+        document.getElementById('selKit').value = p.at(0);
+        document.getElementById('rngMaster').value = p.at(1); upd('valMaster', p.at(1)+'%');
+        document.getElementById('rngMetroVol').value = p.at(2); upd('valMetroVol', p.at(2)+'%');
+        metroState = (p.at(3) === '1');
         document.getElementById('btnMetro').innerText = metroState ? "METRO: ON" : "METRO: OFF";
-        document.getElementById('rngBpm').value = p; upd('valBpm', p);
-        document.getElementById('selPad').value = p;
-        document.getElementById('rngPadVol').value = p; upd('valPadVol', p+'%');
-        document.getElementById('rngPadPan').value = p; upd('valPadPan', p);
-        document.getElementById('rngPadPitch').value = p; upd('valPadPitch', (p>0?'+':'')+p+' st');
-        document.getElementById('rngSens').value = p; upd('valSens', p+'/16');
-        document.getElementById('rngThresh').value = p; upd('valThresh', p*25);
-        document.getElementById('rngMask').value = p; upd('valMask', p+'ms');
+        document.getElementById('rngBpm').value = p.at(4); upd('valBpm', p.at(4));
+        document.getElementById('selPad').value = p.at(5);
+        document.getElementById('rngPadVol').value = p.at(6); upd('valPadVol', p.at(6)+'%');
+        document.getElementById('rngPadPan').value = p.at(7); upd('valPadPan', p.at(7));
+        document.getElementById('rngPadPitch').value = p.at(8); upd('valPadPitch', (p.at(8)>0?'+':'')+p.at(8)+' st');
+        document.getElementById('rngSens').value = p.at(9); upd('valSens', p.at(9)+'/16');
+        document.getElementById('rngThresh').value = p.at(10); upd('valThresh', p.at(10)*25);
+        document.getElementById('rngMask').value = p.at(11); upd('valMask', p.at(11)+'ms');
       }
     }
   }
 </script>
-</body>
-</html>
